@@ -1,21 +1,15 @@
-[supervisord]
-nodaemon=true
+#!/bin/bash
+export DISPLAY=:0
 
-[program:startscript]
-command=/app/start.sh
-autostart=true
-autorestart=true
-startsecs=2
-redirect_stderr=true
+# 启动 Xvfb 和 Openbox
+Xvfb :0 -screen 0 1280x800x24 &
+openbox &
 
-; 输出到 stdout/stderr，不做轮转以避免 Illegal seek 问题
-stdout_logfile=/dev/stdout
-stderr_logfile=/dev/stderr
-stdout_logfile_maxbytes=0
-stderr_logfile_maxbytes=0
+# 设置 noVNC 密码
+echo "qVXe%B;LF,m/h7j" > /app/novnc/passwd
 
-# 启动 Firefox（无头可视化环境已有 Xvfb）
-firefox-esr &
+# 启动 x11vnc
+x11vnc -display :0 -forever -rfbauth /app/novnc/passwd -shared -rfbport 5900 &
 
-# 保持前台（supervisord 管理 start.sh；这里用 sleep loop）
-while true; do sleep 3600; done
+# 启动 noVNC
+/app/novnc/websockify/run 8080 localhost:5900 --web /app/novnc/web
